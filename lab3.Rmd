@@ -1,0 +1,79 @@
+---
+title: 'Lab week 3: binomial logistic regression'
+author: "Claire Meuter"
+date: "2023-01-26"
+output: html_document
+---
+
+```{r setup, echo =TRUE, warning=,FALSE, message=FALSE, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(tidymodels)
+library(palmerpenguins)
+library(GGally)
+library(jtools)
+library(AICcmodavg)
+```
+
+# Psuedocode (or a todo list)
+# think the steps through 
+* Examine our data
+* Identify a question
+* Wrangle the data 
+* Identify some candidate models 
+* Select among candidate models using AIC/BIC
+* Select among candidate models using K-fold cross validation
+* Select amon candidate models using area under reciever operating characteristic curve 
+
+
+#explore our data a little
+```{r}
+GGally::ggpairs(penguins %>% select(species, bill_length_mm:sex), aes(color = species))
+```
+
+```{r}
+class(penguins$species)
+#it's a factor
+levels(penguins$species)
+
+adelie_chinstrap <- penguins %>% 
+  filter(species %in% c("Adelie", "Chinstrap")) %>% 
+  mutate(species = fct_drop(species)) %>% #telling it to drop any factors that don't exist
+  select(-year) %>% 
+  drop_na()
+
+levels(adelie_chinstrap$species) #now my levels only contain adelie and chinstrap 
+
+
+```
+
+#let's check out trends across variables 
+```{r}
+
+ggplot(data = adelie_chinstrap, aes(x = body_mass_g, y = flipper_length_mm)) +
+  geom_point(aes(color = sex, shape = island)) +
+  facet_wrap(~species)
+
+ggplot(data = adelie_chinstrap, aes(x= body_mass_g,  y = bill_length_mm)) +
+  geom_point(aes(color = sex, shape = island)) +
+  facet_wrap(~species)
+
+```
+
+## Let's do some binary logistical regression 
+```{r}
+#let's create a formula 
+f1 <- species ~ body_mass_g + flipper_length_mm + sex
+
+#Let's first try to predict penguin species as a function of body mass, flipper length, and sex
+ad_chin_blr1 <- glm(formula= f1, data = adelie_chinstrap, 
+                    family = "binomial")
+summary(ad_chin_blr1)
+
+```
+```{r}
+# Get a tidy version w/ broom:
+blr1_tidy <- broom::tidy(ad_chin_blr1)
+```
+
